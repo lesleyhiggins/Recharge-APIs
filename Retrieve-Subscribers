@@ -1,0 +1,116 @@
+<script runat="server">
+    Platform.Load("Core", "1.1.1");
+
+    try {        
+        // Recharge API URL and Access Token
+        var url = "https://api.rechargeapps.com/customers";
+        var headerNames = ["X-Recharge-Access-Token"];
+        var headerValues = ["API-Key"]; // Your API Key goes here
+        var response = HTTP.Get(url, headerNames, headerValues);
+
+        Write(response.Content);
+
+        var payload = Platform.Function.ParseJSON(response.Content);
+
+        var customers = payload.customers; // Array of customers
+        Write("Number of customers: " + customers.length + "<br>");
+
+        for (var i = 0; i < customers.length; i++) {
+            var customer = customers[i];
+
+            // Process the analytics_data (flatten the utm_params array)
+            var analytics_data = customer.analytics_data;
+            var utmParams = analytics_data.utm_params;
+            var utmParamsString = ""; // Initialize empty string for flattened UTM params
+
+            if (utmParams.length > 0) {
+                // Loop through the UTM params array and concatenate them into a string
+                for (var j = 0; j < utmParams.length; j++) {
+                    utmParamsString += utmParams[j];
+                    if (j < utmParams.length - 1) {
+                        utmParamsString += ", "; // Add a comma between UTM parameters
+                    }
+                }
+            }
+
+            // Map other fields
+            var accepts_marketing = customer.accepts_marketing;
+            var created_at = customer.created_at;
+            var email = customer.email;
+            var first_charge_processed_at = customer.first_charge_processed_at;
+            var first_name = customer.first_name;
+            var has_card_error_in_dunning = customer.has_card_error_in_dunning
+                ? "true"
+                : "false";
+            var has_valid_payment_method = customer.has_valid_payment_method
+                ? "true"
+                : "false";
+            var hash = customer.hash;
+            var id = customer.id;
+            var last_name = customer.last_name;
+            var number_active_subscriptions = customer.number_active_subscriptions;
+            var number_subscriptions = customer.number_subscriptions;
+            var processor_type = customer.processor_type;
+            var reason_payment_method_not_valid =
+                customer.reason_payment_method_not_valid;
+            var shopify_customer_id = customer.shopify_customer_id;
+            var status = customer.status;
+            var tax_exempt = customer.tax_exempt ? "true" : "false";
+            var updated_at = customer.updated_at;
+
+
+            // Insert data into Data Extension
+            var result = Platform.Function.UpsertData(
+                    "Recharge_Customers", // Replace with your DE name
+                    ["id"], // Use "id" as the primary key field
+                    [id], // Value for the primary key field
+                    [
+                        "accepts_marketing",
+                        "analytics_data",
+                        "created_at",
+                        "first_charge_processed_at",
+                        "first_name",
+                        "has_card_error_in_dunning",
+                        "has_valid_payment_method",
+                        "hash",
+                        "email",
+                        "last_name",
+                        "number_active_subscriptions",
+                        "number_subscriptions",
+                        "processor_type",
+                        "reason_payment_method_not_valid",
+                        "shopify_customer_id",
+                        "status",
+                        "tax_exempt",
+                        "updated_at"
+                    ], // FieldList for the Data Extension
+                    [
+                        accepts_marketing,
+                        utmParamsString,
+                        created_at,
+                        first_charge_processed_at,
+                        first_name,
+                        has_card_error_in_dunning,
+                        has_valid_payment_method,
+                        hash,
+                        email,
+                        last_name,
+                        number_active_subscriptions,
+                        number_subscriptions,
+                        processor_type,
+                        reason_payment_method_not_valid,
+                        shopify_customer_id,
+                        status,
+                        tax_exempt,
+                        updated_at
+                    ] // ValueList for the corresponding fields
+                );
+
+            // Optionally, log the result of the insert operation
+            Write("Upsert operation result for customer ID " + id + ": " + result + "<br>");
+
+        }
+    } catch (e) {
+        Write("Error occurred during API call: " + Stringify(e) + "<br>");
+    }
+</script>
